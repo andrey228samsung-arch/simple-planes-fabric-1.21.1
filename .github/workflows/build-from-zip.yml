@@ -45,13 +45,12 @@ jobs:
           from pathlib import Path
           import re
           root = Path("project/src/main/java/xyz/przemyk/simpleplanes")
-          # The uploaded progress archive omitted Fabric metadata; Loom skips remapping without it.
+          # Always ensure the Fabric metadata exists and triggers Loom's remapping.
           fabric_meta = Path("project/src/main/resources/fabric.mod.json")
-          if not fabric_meta.exists():
-              fabric_meta.write_text("""{
+          fabric_meta.write_text("""{
             "schemaVersion": 1,
             "id": "simpleplanes",
-            "version": "${version}",
+            "version": "\${version}",
             "name": "Simple Planes",
             "description": "Adds upgradeable planes and helicopters.",
             "authors": ["SappyInsane"],
@@ -70,7 +69,8 @@ jobs:
               "java": ">=21",
               "fabric-api": "*"
             }
-          }\n""")
+          }
+          """)
           def edit(rel, fn):
               p = root / rel
               p.write_text(fn(p.read_text()))
@@ -486,7 +486,7 @@ jobs:
           # Ensure Loom's input JAR explicitly includes the compiled classes and processed resources.
           with p.open("a") as f:
               f.write("\n\njar { from('build/classes/java/main'); from('build/resources/main') }\n")
-              f.write("remapJar { inputFile.set(tasks.jar.archiveFile) }\n")
+              f.write("remapJar { inputFile.set(tasks.jar.archiveFile); sourceNamespace = 'named'; targetNamespace = 'intermediary' }\n")
               f.write("tasks.register('printJarInputs') { doLast { println('JAR_TASK=' + tasks.jar.archiveFile.get().asFile + ' size=' + tasks.jar.archiveFile.get().asFile.length()); println('REMAP_INPUT=' + tasks.remapJar.inputFile.get().asFile + ' size=' + tasks.remapJar.inputFile.get().asFile.length()); println('REMAP_OUTPUT=' + tasks.remapJar.archiveFile.get().asFile) } }\n")
           PY
       - name: Build mod
