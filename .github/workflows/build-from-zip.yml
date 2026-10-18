@@ -1,4 +1,4 @@
-name: Build Simple Planes from source ZIP
+name: Build Simple Planes Fabric 1.21.1
 
 on:
   push:
@@ -14,84 +14,38 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
-
       - name: Extract source archive
         run: |
-          test -f source.zip || { echo "Upload the project archive as source.zip to the repository root."; exit 1; }
+          test -f source.zip
           mkdir project
           unzip -q source.zip -d project
-          test -f project/settings.gradle || { echo "settings.gradle not found at archive root."; find project -maxdepth 3 -type f | head -50; exit 1; }
-
-      - name: Apply initial 1.21.1 compatibility fixes
+          test -f project/settings.gradle
+      - name: Apply simple compatibility fixes
+        shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          root = Path("project/src/main/java/xyz/przemyk/simpleplanes")
-          for rel in ["entities/PlaneEntity.java", "blocks/ChargingStationBlock.java", "blocks/PlaneWorkbenchBlock.java", "items/PlaneItem.java"]:
-              p = root / rel
-              p.write_text(p.read_text().replace("import javax.annotation.Nullable;", "import org.jetbrains.annotations.Nullable;"))
-          p = root / "container/FuelSlot.java"
-          p.write_text(p.read_text().replace("import javax.annotation.Nonnull;", "import org.jetbrains.annotations.NotNull;").replace("@Nonnull", "@NotNull"))
-          for rel in ["client/MovingSound.java", "upgrades/jukebox/JukeboxUpgrade.java"]:
-              p = root / rel
-              p.write_text(p.read_text().replace("RecordItem", "MusicDiscItem"))
-          p = root / "setup/SimplePlanesDataSerializers.java"
-          s = p.read_text()
-          s = s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;" + chr(10) + "import net.minecraft.core.registries.BuiltInRegistries;")
-          old = '''        FabricEntityDataRegistry.register(
-                ResourceLocation.fromNamespaceAndPath(SimplePlanesMod.MODID, "quaternion"),
-                QUATERNION_SERIALIZER_ENTRY
-        );'''
-          new = '''        Registry.register(
-                BuiltInRegistries.ENTITY_DATA_SERIALIZER,
-                ResourceLocation.fromNamespaceAndPath(SimplePlanesMod.MODID, "quaternion"),
-                QUATERNION_SERIALIZER_ENTRY
-        );'''
-          p.write_text(s.replace(old, new))
-          p = root / "client/ClientUtil.java"
-          s = p.read_text().replace("import net.minecraft.client.gui.GuiComponent;", "import net.minecraft.client.gui.GuiGraphics;").replace("import com.mojang.math.Matrix4f;" + chr(10), "")
-          old = '''    public static void blit(PoseStack matrixStack, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) {
-        GuiComponent.blit(matrixStack, x, y, blitOffset, (float) uOffset, (float) vOffset, uWidth, vHeight, 256, 256);
-    }'''
-          new = '''    public static void blit(GuiGraphics graphics, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) {
-        graphics.blit(ClientEventHandler.HUD_TEXTURE, x, y, uOffset, vOffset, uWidth, vHeight, 256, 256);
-    }'''
-          s = s.replace(old, new)
-          start = s.find("    private static void buildSquare(")
-          if start != -1:
-              end = s.find(chr(10) + "    public static int alpha(", start)
-              s = s[:start] + s[end:]
-          p.write_text(s)
-          p = root / "client/ClientEventHandler.java"
-          s = p.read_text().replace("        PoseStack matrixStack = graphics.pose();" + chr(10), "").replace("ClientUtil.blit(matrixStack,", "ClientUtil.blit(graphics,").replace("planeEntity.engineUpgrade.renderPowerHUD(matrixStack,", "planeEntity.engineUpgrade.renderPowerHUD(graphics,")
-          p.write_text(s)
-          p = root / "upgrades/engines/EngineUpgrade.java"
-          s = p.read_text().replace("import com.mojang.blaze3d.vertex.PoseStack;", "import net.minecraft.client.gui.GuiGraphics;").replace("renderPowerHUD(PoseStack matrixStack,", "renderPowerHUD(GuiGraphics graphics,")
-          p.write_text(s)
-          p = root / "upgrades/engines/furnace/FurnaceEngineUpgrade.java"
-          s = p.read_text().replace("import com.mojang.blaze3d.vertex.PoseStack;", "import net.minecraft.client.gui.GuiGraphics;").replace("renderPowerHUD(PoseStack matrixStack,", "renderPowerHUD(GuiGraphics graphics,").replace("ClientUtil.blit(matrixStack,", "ClientUtil.blit(graphics,")
-          p.write_text(s)
-          p = Path("project/build.gradle")
-          s = p.read_text().replace('modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"', 'modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"' + chr(10) + '    compileOnly "org.jetbrains:annotations:26.0.2"')
-          p.write_text(s)
-          PY
-
+          ROOT="project/src/main/java/xyz/przemyk/simpleplanes"
+          sed -i 's/import javax.annotation.Nullable;/import org.jetbrains.annotations.Nullable;/' "$ROOT/entities/PlaneEntity.java" "$ROOT/blocks/ChargingStationBlock.java" "$ROOT/blocks/PlaneWorkbenchBlock.java" "$ROOT/items/PlaneItem.java"
+          sed -i 's/import javax.annotation.Nonnull;/import org.jetbrains.annotations.NotNull;/; s/@Nonnull/@NotNull/g' "$ROOT/container/FuelSlot.java"
+          sed -i 's/RecordItem/MusicDiscItem/g' "$ROOT/client/MovingSound.java" "$ROOT/upgrades/jukebox/JukeboxUpgrade.java"
+          sed -i 's/import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;/import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;/' "$ROOT/setup/SimplePlanesDataSerializers.java"
+          sed -i 's/FabricEntityDataRegistry.register(/Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,/' "$ROOT/setup/SimplePlanesDataSerializers.java"
+          sed -i 's/import com.mojang.math.Matrix4f;//' "$ROOT/client/ClientUtil.java"
+          sed -i 's/import net.minecraft.client.gui.GuiComponent;/import net.minecraft.client.gui.GuiGraphics;/' "$ROOT/client/ClientUtil.java"
+          grep -q 'org.jetbrains:annotations' project/build.gradle || sed -i '/fabric-api:/a\    compileOnly "org.jetbrains:annotations:26.0.2"' project/build.gradle
       - name: Build mod
         working-directory: project
         run: |
           chmod +x gradlew
-          ./gradlew build --no-daemon
-
-      - name: Upload JAR files
+          ./gradlew build --no-daemon --stacktrace
+      - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
