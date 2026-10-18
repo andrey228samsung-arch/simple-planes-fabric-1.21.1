@@ -281,6 +281,24 @@ jobs:
                   s = s.replace("new ImageButton(leftPos + 122, topPos + 47, 10, 15, 176, 0, 15, GUI,\n                button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_LEFT))", "new ImageButton(leftPos + 122, topPos + 47, 10, 15, 176, 0, 15, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_LEFT))")
                   s = s.replace("new ImageButton(leftPos + 152, topPos + 47, 10, 15, 186, 0, 15, GUI,\n                button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT))", "new ImageButton(leftPos + 152, topPos + 47, 10, 15, 186, 0, 15, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT))")
               p.write_text(s)
+          # Update remaining model, banner and registry APIs.
+          for p in root.rglob("*.java"):
+              s = p.read_text()
+              s = re.sub(r"(renderToBuffer\\s*\\([^;\\n]*?,\\s*(?:OverlayTexture\\.NO_OVERLAY|packedOverlay|overlay))\\s*,\\s*1\\.0[Ff]?\\s*,\\s*1\\.0[Ff]?\\s*,\\s*1\\.0[Ff]?\\s*,\\s*1\\.0[Ff]?\\s*\\)", r"\\1)", s)
+              s = re.sub(r"(\\.render\\s*\\([^;\\n]*?,\\s*(?:OverlayTexture\\.NO_OVERLAY|packedOverlay|overlay))\\s*,\\s*1\\.0[Ff]?\\s*,\\s*1\\.0[Ff]?\\s*,\\s*1\\.0[Ff]?\\s*,\\s*1\\.0[Ff]?\\s*\\)", r"\\1)", s)
+              if p.name == "ArmorUpgrade.java":
+                  s = s.replace("BuiltInRegistries.ENCHANTMENT", "net.minecraft.core.registries.BuiltInRegistries.ENCHANTMENT")
+                  s = re.sub(r"(ItemRenderer\\.getArmorFoilBuffer\\(buffer, RenderType\\.(?:armorCutoutNoCull|itemEntityTranslucentCull)\\([^)]*\\), false),\\s*(?:protectionLevel > 0|false)\\)", r"\\1)", s)
+              if p.name == "BannerModel.java":
+                  s = s.replace("List<Pair<Holder<BannerPattern>, DyeColor>> list = BANNER_BLOCK_ENTITY.getPatterns();", "var list = BANNER_BLOCK_ENTITY.getPatterns();")
+                  s = s.replace("bannerRenderer.flag, ModelBakery.BANNER_BASE, true, list)", "bannerRenderer.flag, ModelBakery.BANNER_BASE, list)")
+              if p.name == "UpgradeButtonsList.java":
+                  s = s.replace("super(mcIn, widthIn, heightIn, topIn, bottomIn, itemHeightIn);", "super(mcIn, widthIn, heightIn, topIn, bottomIn, itemHeightIn);")
+                  s = s.replace("x0 + widthIn / 2 - widthIn / 2, y0,", "0, topIn,")
+                  s = s.replace("public void updateNarration(NarrationElementOutput p_169152_) {}", "protected void updateWidgetNarration(NarrationElementOutput p_169152_) {}")
+              if p.name == "PlaneEntity.java":
+                  s = s.replace("BuiltInRegistries.BLOCK_REGISTRY", "net.minecraft.core.registries.Registries.BLOCK")
+              p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
