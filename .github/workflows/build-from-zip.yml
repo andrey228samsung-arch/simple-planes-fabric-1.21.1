@@ -86,7 +86,7 @@ jobs:
               return s[:start] + block + s[end:]
           edit("entities/HelicopterEntity.java", helicopter_data)
           for rel in ["entities/PlaneEntity.java", "entities/LargePlaneEntity.java", "entities/ParachuteEntity.java", "entities/HelicopterEntity.java", "container/PlaneInventoryContainer.java"]:
-              edit(rel, lambda s: s.replace("level.", "level()."))
+              edit(rel, lambda s: s.replace("level.", "level().").replace("net.minecraft.world.level().", "net.minecraft.world.level."))
           edit("entities/PlaneEntity.java", lambda s: s.replace("Q_Prev.copy()", "new Quaternionf(Q_Prev)").replace("maxUpStep = 0.9999f;", "setMaxUpStep(0.9999f);"))
           edit("entities/ParachuteEntity.java", lambda s: s.replace("new BlockPos(getX(), getY() - 0.1, getZ())", "BlockPos.containing(getX(), getY() - 0.1, getZ())").replace("blockState.getMaterial().isReplaceable()", "blockState.canBeReplaced()"))
           edit("upgrades/Upgrade.java", lambda s: s.replace(", false, false);", ", false);"))
@@ -97,7 +97,7 @@ jobs:
               "accessible field net/minecraft/world/entity/Entity onGround Z"
           ]:
               if line not in aw_text:
-                  aw_text += "\\n" + line
+                  aw_text += "\n" + line
           aw.write_text(aw_text)
           p = Path("project/build.gradle")
           s = p.read_text()
