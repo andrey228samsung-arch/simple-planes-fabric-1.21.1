@@ -208,7 +208,7 @@ jobs:
           # Fix signatures that changed in Minecraft 1.21.1.
           for p in root.rglob("*.java"):
               s = p.read_text()
-              s = re.sub(r'(public\\s+void\\s+renderToBuffer\\s*\\([^)]*?,\\s*int\\s+\\w+\\s*,\\s*int\\s+\\w+)\\s*\\)', r'\\1, int packedColor)', s)
+              s = re.sub(r'(public\s+void\s+renderToBuffer\s*\([^)]*?,\s*int\s+\w+\s*,\s*int\s+\w+)\s*\)', r'\1, int packedColor)', s)
               s = s.replace("getControllingPassenger()", "getFirstPassenger()")
               s = s.replace("public void positionRider(Entity passenger)", "public void positionRider(Entity passenger, Entity.MoveFunction moveFunction)")
               s = s.replace("passenger.setPos(getX() + pos.x(), getY() + pos.y(), getZ() + pos.z());", "moveFunction.accept(passenger, getX() + pos.x(), getY() + pos.y(), getZ() + pos.z());")
