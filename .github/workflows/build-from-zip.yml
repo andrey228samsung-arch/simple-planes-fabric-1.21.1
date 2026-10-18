@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'source.zip'
+      - '.github/workflows/build-from-zip.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,36 +31,48 @@ jobs:
           unzip -q source.zip -d project
           test -f project/settings.gradle || { echo "settings.gradle not found at archive root."; find project -maxdepth 3 -type f | head -50; exit 1; }
 
-      - name: Apply Minecraft 1.21.1 compatibility fixes
+      - name: Apply initial 1.21.1 compatibility fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
           root = Path("project/src/main/java/xyz/przemyk/simpleplanes")
           for rel in ["entities/PlaneEntity.java", "blocks/ChargingStationBlock.java", "blocks/PlaneWorkbenchBlock.java", "items/PlaneItem.java"]:
               p = root / rel
-              s = p.read_text()
-              s = s.replace("import javax.annotation.Nullable;", "import org.jetbrains.annotations.Nullable;")
-              p.write_text(s)
+              p.write_text(p.read_text().replace("import javax.annotation.Nullable;", "import org.jetbrains.annotations.Nullable;"))
           p = root / "container/FuelSlot.java"
-          s = p.read_text().replace("import javax.annotation.Nonnull;", "import org.jetbrains.annotations.NotNull;").replace("@Nonnull", "@NotNull")
-          p.write_text(s)
+          p.write_text(p.read_text().replace("import javax.annotation.Nonnull;", "import org.jetbrains.annotations.NotNull;").replace("@Nonnull", "@NotNull"))
           for rel in ["client/MovingSound.java", "upgrades/jukebox/JukeboxUpgrade.java"]:
               p = root / rel
               p.write_text(p.read_text().replace("RecordItem", "MusicDiscItem"))
           p = root / "setup/SimplePlanesDataSerializers.java"
-          s = p.read_text().replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\\nimport net.minecraft.core.registries.BuiltInRegistries;")
-          s = s.replace("        FabricEntityDataRegistry.register(\\n                ResourceLocation.fromNamespaceAndPath(SimplePlanesMod.MODID, \\"quaternion\\"),\\n                QUATERNION_SERIALIZER_ENTRY\\n        );", "        Registry.register(\\n                BuiltInRegistries.ENTITY_DATA_SERIALIZER,\\n                ResourceLocation.fromNamespaceAndPath(SimplePlanesMod.MODID, \\"quaternion\\"),\\n                QUATERNION_SERIALIZER_ENTRY\\n        );")
-          p.write_text(s)
+          s = p.read_text()
+          s = s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;" + chr(10) + "import net.minecraft.core.registries.BuiltInRegistries;")
+          old = '''        FabricEntityDataRegistry.register(
+                ResourceLocation.fromNamespaceAndPath(SimplePlanesMod.MODID, "quaternion"),
+                QUATERNION_SERIALIZER_ENTRY
+        );'''
+          new = '''        Registry.register(
+                BuiltInRegistries.ENTITY_DATA_SERIALIZER,
+                ResourceLocation.fromNamespaceAndPath(SimplePlanesMod.MODID, "quaternion"),
+                QUATERNION_SERIALIZER_ENTRY
+        );'''
+          p.write_text(s.replace(old, new))
           p = root / "client/ClientUtil.java"
-          s = p.read_text().replace("import net.minecraft.client.gui.GuiComponent;", "import net.minecraft.client.gui.GuiGraphics;").replace("import com.mojang.math.Matrix4f;\\n", "")
-          s = s.replace("    public static void blit(PoseStack matrixStack, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) {\\n        GuiComponent.blit(matrixStack, x, y, blitOffset, (float) uOffset, (float) vOffset, uWidth, vHeight, 256, 256);\\n    }", "    public static void blit(GuiGraphics graphics, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) {\\n        graphics.blit(ClientEventHandler.HUD_TEXTURE, x, y, uOffset, vOffset, uWidth, vHeight, 256, 256);\\n    }")
+          s = p.read_text().replace("import net.minecraft.client.gui.GuiComponent;", "import net.minecraft.client.gui.GuiGraphics;").replace("import com.mojang.math.Matrix4f;" + chr(10), "")
+          old = '''    public static void blit(PoseStack matrixStack, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) {
+        GuiComponent.blit(matrixStack, x, y, blitOffset, (float) uOffset, (float) vOffset, uWidth, vHeight, 256, 256);
+    }'''
+          new = '''    public static void blit(GuiGraphics graphics, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) {
+        graphics.blit(ClientEventHandler.HUD_TEXTURE, x, y, uOffset, vOffset, uWidth, vHeight, 256, 256);
+    }'''
+          s = s.replace(old, new)
           start = s.find("    private static void buildSquare(")
           if start != -1:
-              end = s.find("\\n    public static int alpha(", start)
+              end = s.find(chr(10) + "    public static int alpha(", start)
               s = s[:start] + s[end:]
           p.write_text(s)
           p = root / "client/ClientEventHandler.java"
-          s = p.read_text().replace("        PoseStack matrixStack = graphics.pose();\\n", "").replace("ClientUtil.blit(matrixStack,", "ClientUtil.blit(graphics,").replace("planeEntity.engineUpgrade.renderPowerHUD(matrixStack,", "planeEntity.engineUpgrade.renderPowerHUD(graphics,")
+          s = p.read_text().replace("        PoseStack matrixStack = graphics.pose();" + chr(10), "").replace("ClientUtil.blit(matrixStack,", "ClientUtil.blit(graphics,").replace("planeEntity.engineUpgrade.renderPowerHUD(matrixStack,", "planeEntity.engineUpgrade.renderPowerHUD(graphics,")
           p.write_text(s)
           p = root / "upgrades/engines/EngineUpgrade.java"
           s = p.read_text().replace("import com.mojang.blaze3d.vertex.PoseStack;", "import net.minecraft.client.gui.GuiGraphics;").replace("renderPowerHUD(PoseStack matrixStack,", "renderPowerHUD(GuiGraphics graphics,")
@@ -68,7 +81,7 @@ jobs:
           s = p.read_text().replace("import com.mojang.blaze3d.vertex.PoseStack;", "import net.minecraft.client.gui.GuiGraphics;").replace("renderPowerHUD(PoseStack matrixStack,", "renderPowerHUD(GuiGraphics graphics,").replace("ClientUtil.blit(matrixStack,", "ClientUtil.blit(graphics,")
           p.write_text(s)
           p = Path("project/build.gradle")
-          s = p.read_text().replace('modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"', 'modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"\\n    compileOnly "org.jetbrains:annotations:26.0.2"')
+          s = p.read_text().replace('modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"', 'modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"' + chr(10) + '    compileOnly "org.jetbrains:annotations:26.0.2"')
           p.write_text(s)
           PY
 
