@@ -497,21 +497,11 @@ jobs:
           ./gradlew build --no-daemon --stacktrace --info
           echo "Compiled class files: $(find build/classes/java/main -type f -name '*.class' 2>/dev/null | wc -l)"
           echo "Dev JAR class count:"
-          find build/devlibs -maxdepth 1 -type f -name '*-dev.jar' -exec sh -c 'jar tf "$1" | grep -E '\''\.class
-          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep -E '\.class$' | wc -l
-      - name: Upload JAR
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: simple-planes-fabric-1.21.1
-          path: project/build/libs/*.jar
-          if-no-files-found: error
-          retention-days: 14
-\'' | wc -l' _ {} \;
+          jar tf build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar | grep '\.class' | wc -l
           echo "Metadata in dev JAR:"
-          jar tf build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar | grep fabric.mod.json || true
+          jar tf build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar | grep 'fabric.mod.json' || true
           echo "Remapped JAR class count:"
-          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep -E '\.class$' | wc -l
+          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep '\.class' | wc -l
       - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
