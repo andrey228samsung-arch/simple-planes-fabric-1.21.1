@@ -309,10 +309,6 @@ jobs:
           p = root / "client/ClientEventHandler.java"
           s = p.read_text().replace("ClientUtil.renderHotbarItem(matrixStack,", "ClientUtil.renderHotbarItem(graphics, matrixStack,")
           p.write_text(s)
-          p = root / "setup/SimplePlanesDataSerializers.java"
-          s = p.read_text().replace("import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;", "import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;")
-          s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "FabricEntityDataRegistry.register(")
-          p.write_text(s)
           p = root / "client/MovingSound.java"
           s = p.read_text()
           s = s.replace("minecraft.gui.setNowPlaying(playable.song().unwrap( song -> song.description(), holder -> holder.value().description()));", "minecraft.gui.setNowPlaying(net.minecraft.network.chat.Component.empty());")
@@ -354,17 +350,13 @@ jobs:
           s = s.replace("new ImageButton(leftPos + 152, topPos + 47, 10, 15, 186, 0, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT))", "Button.builder(Component.literal(\"▶\"), button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT)).bounds(leftPos + 152, topPos + 47, 10, 15).build()")
           s = s.replace("import net.minecraft.client.gui.components.ImageButton;", "import net.minecraft.client.gui.components.Button;")
           p.write_text(s)
-          p = root / "setup/SimplePlanesDataSerializers.java"
-          s = p.read_text().replace("import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;", "import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;")
-          s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "FabricEntityDataRegistry.register(")
-          p.write_text(s)
           p = root / "upgrades/payload/PayloadUpgrade.java"
           s = p.read_text().replace("EquipmentSlot.MAINHAND", "net.minecraft.world.entity.EquipmentSlot.MAINHAND")
           p.write_text(s)
           # In Minecraft 1.21.1 serializers are registered in BuiltInRegistries, not the newer Fabric helper.
           p = root / "setup/SimplePlanesDataSerializers.java"
           s = p.read_text()
-          s = s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\\nimport net.minecraft.core.registries.BuiltInRegistries;")
+          s = s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;")
           s = s.replace("FabricEntityDataRegistry.register(", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER, ")
           s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,")
           p.write_text(s)
