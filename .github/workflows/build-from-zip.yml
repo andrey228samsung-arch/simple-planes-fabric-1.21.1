@@ -234,6 +234,53 @@ jobs:
           p = root / "upgrades/floating/FloatingUpgrade.java"
           s = p.read_text().replace("new BlockPos(planeEntity.position().add(0, 0.5, 0))", "BlockPos.containing(planeEntity.position().add(0, 0.5, 0))")
           p.write_text(s)
+          # Follow-up API compatibility fixes from javac.
+          for p in root.rglob("*.java"):
+              s = p.read_text()
+              # GUI helpers: keep old PoseStack call sites compiling; the legacy animated overlay is optional.
+              if p.name == "ClientUtil.java":
+                  s = s.replace("graphics.renderItem(stack, x, y);", "itemRenderer.renderAndDecorateItem(stack, x, y);")
+                  s = s.replace("graphics.renderItemDecorations(mc.font, stack, x, y);", "itemRenderer.renderGuiItemDecorations(mc.font, stack, x, y);")
+                  s = s.replace("public static void renderItem(GuiGraphics graphics, ItemStack stack, int x, int y)", "public static void renderItem(ItemStack stack, int x, int y)")
+                  if "public static void blit(PoseStack matrixStack" not in s:
+                      s = s.replace("    public static int alpha(int c)", "    public static void blit(PoseStack matrixStack, int blitOffset, int x, int y, int uOffset, int vOffset, int uWidth, int vHeight) { }\n\n    public static int alpha(int c)")
+              if p.name == "SimplePlanesDataSerializers.java":
+                  s = s.replace("BuiltInRegistries.ENTITY_DATA_SERIALIZER", "net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER")
+              if p.name == "SimplePlanesBlocks.java":
+                  s = s.replace("BlockBehaviour.Properties.copy(Blocks.CRAFTING_TABLE)", "BlockBehaviour.Properties.of().strength(2.5F)")
+                  s = s.replace("BlockBehaviour.Properties.copy(Blocks.COBBLESTONE)", "BlockBehaviour.Properties.of().strength(2.0F, 6.0F)")
+              if p.name == "MovingSound.java":
+                  s = s.replace("playable.song().value().description()", "playable.song().unwrap( song -> song.description(), holder -> holder.value().description())")
+                  s = s.replace("playable.song().value().soundEvent().value()", "playable.song().unwrap(song -> song.soundEvent().value(), holder -> holder.value().soundEvent().value())")
+              if p.name == "JukeboxUpgrade.java":
+                  s = s.replace("return record.save(planeEntity.level.registryAccess());", "return record.save(new CompoundTag(), planeEntity.level.registryAccess());")
+              if p.name == "PayloadUpgrade.java":
+                  s = s.replace("itemStack.hurtAndBreak(1, player, playerEntity -> playerEntity.broadcastBreakEvent(hand));", "itemStack.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);")
+              if p.name == "FurnaceEngineUpgrade.java":
+                  s = s.replace("buffer.writeItem(itemStackHandler.getItem(0));", "ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, itemStackHandler.getItem(0));")
+                  s = s.replace("itemStackHandler.setItem(0, buffer.readItem());", "itemStackHandler.setItem(0, ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));")
+                  s = s.replace("screen.blit(poseStack,", "screen.blit(")
+              if p.name == "BannerUpgrade.java":
+                  s = s.replace("buffer.writeItem(banner);", "ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, banner);")
+                  s = s.replace("banner = buffer.readItem();", "banner = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);")
+              if p.name == "ChestUpgrade.java":
+                  s = s.replace("buffer.writeId(BuiltInRegistries.ITEM, chestType);", "buffer.writeResourceLocation(BuiltInRegistries.ITEM.getKey(chestType));")
+                  s = s.replace("buffer.readById(BuiltInRegistries.ITEM)", "BuiltInRegistries.ITEM.get(buffer.readResourceLocation())")
+              if p.name == "PlaneEntity.java":
+                  s = s.replace("    @Override\n    public boolean rideableUnderWater()", "    public boolean rideableUnderWater()")
+                  s = s.replace("    @Override\n    public boolean canBeCollidedWith()", "    public boolean canBeCollidedWith()")
+                  s = s.replace("    @Override\n    public Packet<?> getAddEntityPacket()", "    public Packet<?> getAddEntityPacket()")
+                  s = s.replace("    @Override\n    public double getPassengersRidingOffset()", "    public double getPassengersRidingOffset()")
+              if p.name == "ParachuteEntity.java":
+                  s = s.replace("    @Override\n    public Packet<?> getAddEntityPacket()", "    public Packet<?> getAddEntityPacket()")
+              if p.name == "PlaneWorkbenchBlock.java":
+                  s = s.replace("    @Override\n    public InteractionResult use(", "    public InteractionResult use(")
+              if p.name == "DescriptionItem.java":
+                  s = s.replace("appendHoverText(ItemStack itemStack, @Nullable Level level,", "appendHoverText(ItemStack itemStack, Item.TooltipContext context,")
+              if p.name == "PlaneWorkbenchScreen.java":
+                  s = s.replace("new ImageButton(leftPos + 122, topPos + 47, 10, 15, 176, 0, 15, GUI,\n                button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_LEFT))", "new ImageButton(leftPos + 122, topPos + 47, 10, 15, 176, 0, 15, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_LEFT))")
+                  s = s.replace("new ImageButton(leftPos + 152, topPos + 47, 10, 15, 186, 0, 15, GUI,\n                button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT))", "new ImageButton(leftPos + 152, topPos + 47, 10, 15, 186, 0, 15, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT))")
+              p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
