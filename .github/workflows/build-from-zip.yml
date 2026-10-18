@@ -378,8 +378,8 @@ jobs:
           s = p.read_text().replace("net.minecraft.core.registries.planeEntity.level.registryAccess()", "planeEntity.level.registryAccess()")
           p.write_text(s)
           p = root / "upgrades/jukebox/JukeboxUpgrade.java"
-          s = p.read_text().replace("return record.saveOptional(planeEntity.level.registryAccess());", "CompoundTag tag = new CompoundTag();" + chr(10) + "        tag.put(\\"record\\", record.saveOptional(planeEntity.level.registryAccess()));" + chr(10) + "        return tag;")
-          s = s.replace("record = ItemStack.parse(planeEntity.level.registryAccess(), nbt).orElse(ItemStack.EMPTY);", "record = ItemStack.parse(planeEntity.level.registryAccess(), nbt.get(\\"record\\")).orElse(ItemStack.EMPTY);")
+          s = p.read_text().replace("return record.saveOptional(planeEntity.level.registryAccess());", "CompoundTag tag = new CompoundTag();" + chr(10) + '        tag.put("record", record.saveOptional(planeEntity.level.registryAccess()));' + chr(10) + "        return tag;")
+          s = s.replace("record = ItemStack.parse(planeEntity.level.registryAccess(), nbt).orElse(ItemStack.EMPTY);", 'record = ItemStack.parse(planeEntity.level.registryAccess(), nbt.get("record")).orElse(ItemStack.EMPTY);')
           p.write_text(s)
           p = root / "client/render/PlaneItemColors.java"
           s = p.read_text().replace("                return redo;", "")
