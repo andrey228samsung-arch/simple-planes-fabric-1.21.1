@@ -460,6 +460,7 @@ jobs:
           # Ensure Loom's input JAR explicitly includes the compiled classes and processed resources.
           with p.open("a") as f:
               f.write("\n\njar { from('build/classes/java/main'); from('build/resources/main') }\n")
+              f.write("remapJar { inputFile.set(tasks.jar.archiveFile) }\n")
           PY
       - name: Build mod
         working-directory: project
@@ -467,11 +468,10 @@ jobs:
           chmod +x gradlew
           ./gradlew build --no-daemon --stacktrace
           echo "Compiled class files: $(find build/classes/java/main -type f -name '*.class' 2>/dev/null | wc -l)"
-          find build -type f -name '*.jar' -exec sh -c 'echo "JAR $1"; ls -lh "$1"; jar tf "$1" | head -15' _ {} \;
-          echo "Remapped mod class count:"
-          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep '\.class$' | wc -l || true
           echo "Dev JAR class count:"
-          find build/devlibs -type f -name '*.jar' -exec sh -c 'jar tf "$1" | grep '\''\.class$'\'' | wc -l' _ {} \; || true
+          find build/devlibs -maxdepth 1 -type f -name '*-dev.jar' -exec sh -c 'jar tf "$1" | grep -E '\''\.class$'\'' | wc -l' _ {} \;
+          echo "Remapped JAR class count:"
+          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep -E '\.class$' | wc -l
       - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
