@@ -43,6 +43,7 @@ jobs:
           edit("container/FuelSlot.java", lambda s: s.replace("import javax.annotation.Nonnull;", "import org.jetbrains.annotations.NotNull;").replace("@Nonnull", "@NotNull"))
           edit("setup/SimplePlanesDataSerializers.java", lambda s: s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;").replace("FabricEntityDataRegistry.register(", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,"))
           def client_util(s):
+              s = re.sub(r"    private static void buildSquare\(.*?\n    }", "", s, flags=re.S)
               s = s.replace("import com.mojang.math.Matrix4f;", "")
               s = s.replace("import net.minecraft.client.gui.GuiComponent;", "import net.minecraft.client.gui.GuiGraphics;")
               s = s.replace("public static void blit(PoseStack matrixStack, int blitOffset,", "public static void blit(GuiGraphics graphics, int blitOffset,")
