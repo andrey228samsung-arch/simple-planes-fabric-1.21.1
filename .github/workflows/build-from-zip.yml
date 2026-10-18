@@ -361,6 +361,13 @@ jobs:
           p = root / "upgrades/payload/PayloadUpgrade.java"
           s = p.read_text().replace("EquipmentSlot.MAINHAND", "net.minecraft.world.entity.EquipmentSlot.MAINHAND")
           p.write_text(s)
+          # In Minecraft 1.21.1 serializers are registered in BuiltInRegistries, not the newer Fabric helper.
+          p = root / "setup/SimplePlanesDataSerializers.java"
+          s = p.read_text()
+          s = s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\\nimport net.minecraft.core.registries.BuiltInRegistries;")
+          s = s.replace("FabricEntityDataRegistry.register(", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER, ")
+          s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,")
+          p.write_text(s)
           # FabricEntityDataRegistry is available in the later 1.21.1 API line.
           gp = Path("project/gradle.properties")
           if gp.exists():
