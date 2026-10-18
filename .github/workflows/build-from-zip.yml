@@ -486,7 +486,7 @@ jobs:
           # Ensure Loom's input JAR explicitly includes the compiled classes and processed resources.
           with p.open("a") as f:
               f.write("\n\njar { duplicatesStrategy = DuplicatesStrategy.EXCLUDE; from('build/classes/java/main'); from('build/resources/main'); from('src/main/resources/fabric.mod.json') }\n")
-              f.write("remapJar { inputFile.set(tasks.jar.archiveFile) }\n")
+              f.write("remapJar { inputFile.set(tasks.jar.archiveFile); sourceNamespace = 'named'; targetNamespace = 'intermediary'; classpath.from(configurations.compileClasspath) }\n")
               f.write("tasks.register('printJarInputs') { doLast { println('JAR_TASK=' + tasks.jar.archiveFile.get().asFile + ' size=' + tasks.jar.archiveFile.get().asFile.length()); println('REMAP_INPUT=' + tasks.remapJar.inputFile.get().asFile + ' size=' + tasks.remapJar.inputFile.get().asFile.length()); println('REMAP_OUTPUT=' + tasks.remapJar.archiveFile.get().asFile) } }\n")
           PY
       - name: Build mod
@@ -499,7 +499,7 @@ jobs:
           echo "Dev JAR class count:"
           jar tf build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar | grep '\.class' | wc -l
           echo "Metadata in dev JAR:"
-          jar tf build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar | grep 'fabric.mod.json' || true
+          unzip -p build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar fabric.mod.json || true
           echo "Remapped JAR class count:"
           jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep '\.class' | wc -l
       - name: Upload JAR
