@@ -27,6 +27,16 @@ jobs:
           test -f source.zip
           mkdir project
           unzip -q source.zip -d project
+          # Some progress archives include the whole project inside a top-level folder.
+          if [ "$(find project/src/main/java -name '*.java' 2>/dev/null | wc -l)" -eq 0 ]; then
+            nested="$(find project -mindepth 3 -type d -path '*/src/main/java' -print -quit)"
+            if [ -n "$nested" ]; then
+              nested_root="${nested%/src/main/java}"
+              echo "Normalizing nested project root: $nested_root"
+              cp -a "$nested_root"/. project/
+            fi
+          fi
+          echo "Java source files: $(find project/src/main/java -name '*.java' 2>/dev/null | wc -l)"
           test -f project/settings.gradle
       - name: Apply Minecraft 1.21.1 compatibility fixes
         shell: bash
@@ -453,6 +463,9 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew build --no-daemon --stacktrace
+          echo "Compiled class files: $(find build/classes/java/main -type f -name '*.class' 2>/dev/null | wc -l)"
+          ls -lh build/libs
+          for jar in build/libs/*.jar; do echo "Contents of $jar"; jar tf "$jar" | head -20; done
       - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
