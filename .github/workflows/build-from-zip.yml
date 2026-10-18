@@ -398,6 +398,10 @@ jobs:
           s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,")
           p.write_text(s)
           # FabricEntityDataRegistry is available in the later 1.21.1 API line.
+          # Loom 1.8.13 can silently emit an empty remapped JAR with newer Gradle releases.
+          wrapper = Path("project/gradle/wrapper/gradle-wrapper.properties")
+          if wrapper.exists():
+              wrapper.write_text(wrapper.read_text().replace("gradle-8.14.6-bin.zip", "gradle-8.10.2-bin.zip"))
           gp = Path("project/gradle.properties")
           if gp.exists():
               props = gp.read_text().replace("fabric_version=0.102.1+1.21.1", "fabric_version=0.116.7+1.21.1")
