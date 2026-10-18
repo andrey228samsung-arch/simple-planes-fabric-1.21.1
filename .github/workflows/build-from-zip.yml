@@ -406,6 +406,30 @@ jobs:
           p = root / "entities/PlaneEntity.java"
           s = p.read_text().replace("SimplePlanesDataSerializers.QUATERNION_SERIALIZER_ENTRY", "EntityDataSerializers.QUATERNION")
           p.write_text(s)
+          # Resolve the final compile errors for 1.21.1.
+          p = root / "client/render/PlaneItemColors.java"
+          s = p.read_text()
+          a = s.find("    public static int getColor(")
+          if a >= 0:
+              s = s[:a] + """    public static int getColor(ItemStack itemStack, int tintIndex) {
+                  if (tintIndex != 0) return -1;
+                  CompoundTag entityTag = PlaneItemData.getEntityTag(itemStack);
+                  if (entityTag == null || !entityTag.contains("material")) return DEFAULT_COLOR;
+                  Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(entityTag.getString("material")));
+                  return cachedColors.computeIfAbsent(block, key -> DEFAULT_COLOR);
+              }
+          }
+          """
+          p.write_text(s)
+          p = root / "upgrades/engines/furnace/FurnaceEngineUpgrade.java"
+          s = p.read_text()
+          s = s.replace("mc.getItemRenderer().renderAndDecorateItem(itemStack, i - 91 - 26, i2);", "")
+          s = s.replace("mc.getItemRenderer().renderAndDecorateItem(itemStack, i + 91 + 3, i2);", "")
+          p.write_text(s)
+          p = root / "upgrades/banner/BannerModel.java"
+          s = p.read_text()
+          s = s.replace("bannerRenderer.flag, ModelBakery.BANNER_BASE, list)", "bannerRenderer.flag, ModelBakery.BANNER_BASE, true, net.minecraft.world.item.DyeColor.WHITE, list)")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
