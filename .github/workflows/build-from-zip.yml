@@ -485,7 +485,7 @@ jobs:
           p.write_text(s)
           # Ensure Loom's input JAR explicitly includes the compiled classes and processed resources.
           with p.open("a") as f:
-              f.write("\n\njar { from('build/classes/java/main'); from('build/resources/main') }\n")
+              f.write("\n\njar { from('build/classes/java/main'); from('build/resources/main'); from('src/main/resources/fabric.mod.json') }\n")
               f.write("remapJar { inputFile.set(tasks.jar.archiveFile); sourceNamespace = 'named'; targetNamespace = 'intermediary' }\n")
               f.write("tasks.register('printJarInputs') { doLast { println('JAR_TASK=' + tasks.jar.archiveFile.get().asFile + ' size=' + tasks.jar.archiveFile.get().asFile.length()); println('REMAP_INPUT=' + tasks.remapJar.inputFile.get().asFile + ' size=' + tasks.remapJar.inputFile.get().asFile.length()); println('REMAP_OUTPUT=' + tasks.remapJar.archiveFile.get().asFile) } }\n")
           PY
