@@ -127,6 +127,59 @@ jobs:
           s = p.read_text().replace("setMaxUpStep(0.9999f);", "maxUpStep = 0.9999f;")
           s = s.replace("new BlockPos(position().add(0, 0.4, 0))", "BlockPos.containing(position().add(0, 0.4, 0))")
           p.write_text(s)
+          # Correct signatures and API migrations still reported by javac.
+          for p in root.rglob("*.java"):
+              s = p.read_text()
+              # Model.renderToBuffer now accepts packed light, overlay, and no RGBA multipliers.
+              s = re.sub(r"(renderToBuffer\s*\(\s*PoseStack\s+\w+\s*,\s*VertexConsumer\s+\w+\s*,\s*int\s+\w+\s*,\s*int\s+\w+)\s*,\s*float\s+\w+\s*,\s*float\s+\w+\s*,\s*float\s+\w+\s*,\s*float\s+\w+(\s*\))", r"\1\2", s)
+              s = re.sub(r"(renderToBuffer\s*\([^;\n]*?,\s*(?:OverlayTexture\.NO_OVERLAY|packedOverlay|overlay))\s*,\s*1\.0[fF]?\s*,\s*1\.0[fF]?\s*,\s*1\.0[fF]?\s*,\s*1\.0[fF]?\s*\)", r"\1)", s)
+              s = s.replace("new BlockPos(getX(), getY() - 1.0D, getZ())", "BlockPos.containing(getX(), getY() - 1.0D, getZ())")
+              s = s.replace("Explosion.BlockInteraction.DESTROY", "Level.ExplosionInteraction.BLOCK")
+              s = s.replace("setMaxUpStep(0.9999f);", "")
+              s = s.replace("maxUpStep = 0.9999f;", "")
+              s = s.replace("TagKey.create(BuiltInRegistries.BLOCK,", "TagKey.create(net.minecraft.core.registries.Registries.BLOCK,")
+              s = s.replace(".getMaterial().isReplaceable()", ".canBeReplaced()")
+              s = s.replace("getControllingPassenger()", "getControllingPassenger()") 
+              s = s.replace("new ClientboundAddEntityPacket(this)", "new ClientboundAddEntityPacket(this, 0)")
+              s = s.replace("new ClientboundAddEntityPacket(planeEntity)", "new ClientboundAddEntityPacket(planeEntity, 0)")
+              s = s.replace("SimplePlanesDataSerializers.QUATERNION_SERIALIZER_ENTRY.write(buffer, quaternion);", "buffer.writeFloat(quaternion.x); buffer.writeFloat(quaternion.y); buffer.writeFloat(quaternion.z); buffer.writeFloat(quaternion.w);")
+              s = s.replace("Quaternionf quaternion = SimplePlanesDataSerializers.QUATERNION_SERIALIZER_ENTRY.read(buffer);", "Quaternionf quaternion = new Quaternionf(buffer.readFloat(), buffer.readFloat(), buffer.readFloat(), buffer.readFloat());")
+              s = s.replace("new BlockPos(position().add(0, 0.4, 0))", "BlockPos.containing(position().add(0, 0.4, 0))")
+              p.write_text(s)
+          # Avoid illegal forward references from the creative tab initializer.
+          p = root / "setup/SimplePlanesItems.java"
+          s = p.read_text()
+          start = s.find("    public static final CreativeModeTab ITEM_GROUP = Registry.register(")
+          end_marker = "                    .build());"
+          end = s.find(end_marker, start)
+          if start >= 0 and end >= 0:
+              end += len(end_marker)
+              tab = s[start:end]
+              s = s[:start] + s[end:]
+              insert = s.find("    private static <T extends Item> T register")
+              if insert >= 0:
+                  s = s[:insert] + tab + "\n\n" + s[insert:]
+              p.write_text(s)
+          # ItemStack duration requires a UseDuration component fallback; the old hotbar animation is optional.
+          p = root / "client/ClientUtil.java"
+          s = p.read_text().replace("float f = (float) stack.getUseDuration() - partialTicks;", "float f = 0.0F;")
+          p.write_text(s)
+          # 1.21.1 entity dimensions use accessors.
+          p = root / "setup/SimplePlanesEntities.java"
+          s = p.read_text().replace(".width", ".width()").replace(".height", ".height()")
+          p.write_text(s)
+          # Use modern sound registration constructor.
+          p = root / "setup/SimplePlanesSounds.java"
+          s = p.read_text().replace("new SoundEvent(", "SoundEvent.createVariableRangeEvent(")
+          p.write_text(s)
+          # Correct tooltip signature and block interaction callback names.
+          for rel in ["items/DescriptionItem.java", "items/PlaneItem.java"]:
+              p = root / rel
+              s = p.read_text()
+              s = s.replace("appendHoverText(ItemStack stack, @Nullable Level worldIn,", "appendHoverText(ItemStack stack, Item.TooltipContext context,")
+              s = s.replace("appendHoverText(ItemStack stack, Level worldIn,", "appendHoverText(ItemStack stack, Item.TooltipContext context,")
+              s = s.replace("super.appendHoverText(stack, worldIn, tooltip, flagIn);", "super.appendHoverText(stack, context, tooltip, flagIn);")
+              p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
