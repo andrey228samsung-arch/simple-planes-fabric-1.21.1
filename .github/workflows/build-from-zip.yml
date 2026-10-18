@@ -63,6 +63,42 @@ jobs:
               s = s.replace("if (itemStack.getItem() instanceof RecordItem newRecordItem && newRecordItem != record.getItem()) {", "if (itemStack.has(DataComponents.JUKEBOX_PLAYABLE) && itemStack.getItem() != record.getItem()) {\n                var newRecordItem = itemStack.getItem();")
               return s
           edit("upgrades/jukebox/JukeboxUpgrade.java", jukebox)
+          # Minecraft 1.21.1 moved synchronized-data declarations to a builder.
+          def plane_data(s):
+              start = s.index("    protected void defineSynchedData() {")
+              end = s.index("\n    public float getMaxSpeed()", start)
+              block = s[start:end].replace("protected void defineSynchedData()", "protected void defineSynchedData(SynchedEntityData.Builder builder)")
+              block = block.replace("entityData.define(", "builder.define(")
+              return s[:start] + block + s[end:]
+          edit("entities/PlaneEntity.java", plane_data)
+          def parachute_data(s):
+              start = s.index("    protected void defineSynchedData() {")
+              end = s.index("\n    @Override", start)
+              block = s[start:end].replace("protected void defineSynchedData()", "protected void defineSynchedData(SynchedEntityData.Builder builder)")
+              block = block.replace("entityData.define(", "builder.define(")
+              return s[:start] + block + s[end:]
+          edit("entities/ParachuteEntity.java", parachute_data)
+          def helicopter_data(s):
+              start = s.index("    protected void defineSynchedData() {")
+              end = s.index("\n    @Override", start)
+              block = s[start:end].replace("protected void defineSynchedData()", "protected void defineSynchedData(SynchedEntityData.Builder builder)")
+              block = block.replace("super.defineSynchedData();", "super.defineSynchedData(builder);").replace("entityData.define(", "builder.define(")
+              return s[:start] + block + s[end:]
+          edit("entities/HelicopterEntity.java", helicopter_data)
+          for rel in ["entities/PlaneEntity.java", "entities/LargePlaneEntity.java", "entities/ParachuteEntity.java", "entities/HelicopterEntity.java", "container/PlaneInventoryContainer.java"]:
+              edit(rel, lambda s: s.replace("level.", "level()."))
+          edit("entities/PlaneEntity.java", lambda s: s.replace("Q_Prev.copy()", "new Quaternionf(Q_Prev)").replace("maxUpStep = 0.9999f;", "setMaxUpStep(0.9999f);"))
+          edit("entities/ParachuteEntity.java", lambda s: s.replace("new BlockPos(getX(), getY() - 0.1, getZ())", "BlockPos.containing(getX(), getY() - 0.1, getZ())").replace("blockState.getMaterial().isReplaceable()", "blockState.canBeReplaced()"))
+          edit("upgrades/Upgrade.java", lambda s: s.replace(", false, false);", ", false);"))
+          aw = Path("project/src/main/resources/simpleplanes.accesswidener")
+          aw_text = aw.read_text()
+          for line in [
+              "accessible field net/minecraft/world/entity/Entity level Lnet/minecraft/world/level/Level;",
+              "accessible field net/minecraft/world/entity/Entity onGround Z"
+          ]:
+              if line not in aw_text:
+                  aw_text += "\\n" + line
+          aw.write_text(aw_text)
           p = Path("project/build.gradle")
           s = p.read_text()
           if "org.jetbrains:annotations" not in s:
