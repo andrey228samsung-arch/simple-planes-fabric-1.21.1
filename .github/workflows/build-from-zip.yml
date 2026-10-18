@@ -50,7 +50,7 @@ jobs:
           fabric_meta.write_text("""{
             "schemaVersion": 1,
             "id": "simpleplanes",
-            "version": "\${version}",
+            "version": "${version}",
             "name": "Simple Planes",
             "description": "Adds upgradeable planes and helicopters.",
             "authors": ["SappyInsane"],
