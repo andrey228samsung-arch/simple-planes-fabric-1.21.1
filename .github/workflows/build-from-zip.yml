@@ -205,6 +205,35 @@ jobs:
           s = p.read_text()
           s = re.sub(r"new ImageButton\\(([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*(\\([^)]*\\)\\s*->\\s*[^)]*)\\)", r"new ImageButton(\\1, \\2, \\3, \\4, \\5, \\6, \\7, \\8, \\9)", s)
           p.write_text(s)
+          # Fix signatures that changed in Minecraft 1.21.1.
+          for p in root.rglob("*.java"):
+              s = p.read_text()
+              s = re.sub(r'(public\\s+void\\s+renderToBuffer\\s*\\([^)]*?,\\s*int\\s+\\w+\\s*,\\s*int\\s+\\w+)\\s*\\)', r'\\1, int packedColor)', s)
+              s = s.replace("getControllingPassenger()", "getFirstPassenger()")
+              s = s.replace("public void positionRider(Entity passenger)", "public void positionRider(Entity passenger, Entity.MoveFunction moveFunction)")
+              s = s.replace("passenger.setPos(getX() + pos.x(), getY() + pos.y(), getZ() + pos.z());", "moveFunction.accept(passenger, getX() + pos.x(), getY() + pos.y(), getZ() + pos.z());")
+              s = s.replace("        super.positionRider(passenger);", "")
+              s = s.replace("new ClientboundAddEntityPacket(this, 0)", "new ClientboundAddEntityPacket(this, (net.minecraft.server.level.ServerEntity) null)")
+              s = s.replace("new ClientboundAddEntityPacket(planeEntity, 0)", "new ClientboundAddEntityPacket(planeEntity, (net.minecraft.server.level.ServerEntity) null)")
+              s = s.replace("new BlockPos(planeEntity.position().add(0, 0.5, 0))", "BlockPos.containing(planeEntity.position().add(0, 0.5, 0))")
+              s = s.replace("camera.move((float)-camera.getMaxZoom((float)(4.0D * (planeEntity.getCameraDistanceMultiplayer() - 1.0))), 0.0F, 0.0F);", "// Custom camera zoom disabled on 1.21.1 because Camera movement is no longer public.")
+              s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(TEXTURE), false, false)", "ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(TEXTURE), false)")
+              s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(LARGE_TEXTURE), false, false)", "ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(LARGE_TEXTURE), false)")
+              s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(HELI_TEXTURE), false, false)", "ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(HELI_TEXTURE), false)")
+              s = s.replace("new BlockPos(planeEntity.position().add(0, 0.5, 0))", "BlockPos.containing(planeEntity.position().add(0, 0.5, 0))")
+              p.write_text(s)
+          # The 1.21.1 GUI draws items through GuiGraphics.
+          p = root / "client/ClientUtil.java"
+          s = p.read_text().replace("itemRenderer.renderAndDecorateItem(stack, x, y);", "graphics.renderItem(stack, x, y);").replace("itemRenderer.renderGuiItemDecorations(mc.font, stack, x, y);", "graphics.renderItemDecorations(mc.font, stack, x, y);")
+          s = s.replace("public static void renderItem(ItemStack stack, int x, int y)", "public static void renderItem(GuiGraphics graphics, ItemStack stack, int x, int y)")
+          p.write_text(s)
+          # Repair an obsolete sound lookup and registry key references.
+          p = root / "client/MovingSound.java"
+          s = p.read_text().replace("playable.song().value().description()", "playable.song().value().description()")
+          p.write_text(s)
+          p = root / "upgrades/floating/FloatingUpgrade.java"
+          s = p.read_text().replace("new BlockPos(planeEntity.position().add(0, 0.5, 0))", "BlockPos.containing(planeEntity.position().add(0, 0.5, 0))")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
