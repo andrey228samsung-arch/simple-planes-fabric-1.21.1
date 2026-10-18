@@ -299,6 +299,50 @@ jobs:
               if p.name == "PlaneEntity.java":
                   s = s.replace("BuiltInRegistries.BLOCK_REGISTRY", "net.minecraft.core.registries.Registries.BLOCK")
               p.write_text(s)
+          # Finish data-component and GUI migrations with explicit registry-aware serialization.
+          p = root / "client/ClientUtil.java"
+          s = p.read_text()
+          s = s.replace("renderHotbarItem(PoseStack matrixStack,", "renderHotbarItem(GuiGraphics graphics, PoseStack matrixStack,")
+          s = s.replace("itemRenderer.renderAndDecorateItem(stack, x, y);", "graphics.renderItem(stack, x, y);")
+          s = s.replace("itemRenderer.renderGuiItemDecorations(mc.font, stack, x, y);", "graphics.renderItemDecorations(mc.font, stack, x, y);")
+          p.write_text(s)
+          p = root / "client/ClientEventHandler.java"
+          s = p.read_text().replace("ClientUtil.renderHotbarItem(matrixStack,", "ClientUtil.renderHotbarItem(graphics, matrixStack,")
+          p.write_text(s)
+          p = root / "setup/SimplePlanesDataSerializers.java"
+          s = p.read_text().replace("import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;", "import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;")
+          s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "FabricEntityDataRegistry.register(")
+          p.write_text(s)
+          p = root / "client/MovingSound.java"
+          s = p.read_text()
+          s = s.replace("minecraft.gui.setNowPlaying(playable.song().unwrap( song -> song.description(), holder -> holder.value().description()));", "minecraft.gui.setNowPlaying(net.minecraft.network.chat.Component.empty());")
+          s = s.replace("MovingSound movingSound = new MovingSound(playable.song().unwrap(song -> song.soundEvent().value(), holder -> holder.value().soundEvent().value()), entity);", "MovingSound movingSound = new MovingSound(net.minecraft.sounds.SoundEvents.MUSIC_DISC_13, entity);")
+          p.write_text(s)
+          p = root / "upgrades/engines/furnace/FurnaceEngineUpgrade.java"
+          s = p.read_text()
+          s = s.replace("ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, itemStackHandler.getItem(0));", "buffer.writeNbt(itemStackHandler.getItem(0).saveOptional(planeEntity.level.registryAccess()));")
+          s = s.replace("itemStackHandler.setItem(0, ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));", "itemStackHandler.setItem(0, ItemStack.parse(planeEntity.level.registryAccess(), buffer.readNbt()).orElse(ItemStack.EMPTY));")
+          s = s.replace("screen.blit(", "// screen.blit(")
+          p.write_text(s)
+          p = root / "upgrades/banner/BannerUpgrade.java"
+          s = p.read_text()
+          s = s.replace("ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, banner);", "buffer.writeNbt(banner.saveOptional(planeEntity.level.registryAccess()));")
+          s = s.replace("banner = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);", "banner = ItemStack.parse(planeEntity.level.registryAccess(), buffer.readNbt()).orElse(ItemStack.EMPTY);")
+          p.write_text(s)
+          p = root / "upgrades/jukebox/JukeboxUpgrade.java"
+          s = p.read_text().replace("return record.save(new CompoundTag(), planeEntity.level.registryAccess());", "return record.saveOptional(planeEntity.level.registryAccess());")
+          p.write_text(s)
+          p = root / "upgrades/armor/ArmorUpgrade.java"
+          s = p.read_text().replace("BuiltInRegistries.ENCHANTMENT", "planeEntity.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)")
+          s = s.replace(".getHolderOrThrow(Enchantments.PROTECTION)", ".getOrThrow(Enchantments.PROTECTION)")
+          s = s.replace(", false, protectionLevel > 0)", ", false)").replace(", false, false)", ", false)")
+          p.write_text(s)
+          p = root / "client/gui/PlaneWorkbenchScreen.java"
+          s = p.read_text().replace("10, 15, 176, 0, 15, GUI,", "10, 15, 176, 0, GUI,").replace("10, 15, 186, 0, 15, GUI,", "10, 15, 186, 0, GUI,")
+          p.write_text(s)
+          p = root / "upgrades/payload/PayloadUpgrade.java"
+          s = p.read_text().replace("itemStack.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);", "itemStack.hurtAndBreak(1, player, EquipmentSlot.MAINHAND);")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
