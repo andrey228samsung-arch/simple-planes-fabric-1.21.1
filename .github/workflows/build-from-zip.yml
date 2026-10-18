@@ -485,7 +485,7 @@ jobs:
           p.write_text(s)
           # Ensure Loom's input JAR explicitly includes the compiled classes and processed resources.
           with p.open("a") as f:
-              f.write("\n\njar { from('build/classes/java/main'); from('build/resources/main'); from('src/main/resources/fabric.mod.json') }\n")
+              f.write("\n\njar { duplicatesStrategy = DuplicatesStrategy.EXCLUDE; from('build/classes/java/main'); from('build/resources/main'); from('src/main/resources/fabric.mod.json') }\n")
               f.write("remapJar { inputFile.set(tasks.jar.archiveFile); sourceNamespace = 'named'; targetNamespace = 'intermediary' }\n")
               f.write("tasks.register('printJarInputs') { doLast { println('JAR_TASK=' + tasks.jar.archiveFile.get().asFile + ' size=' + tasks.jar.archiveFile.get().asFile.length()); println('REMAP_INPUT=' + tasks.remapJar.inputFile.get().asFile + ' size=' + tasks.remapJar.inputFile.get().asFile.length()); println('REMAP_OUTPUT=' + tasks.remapJar.archiveFile.get().asFile) } }\n")
           PY
@@ -497,7 +497,19 @@ jobs:
           ./gradlew build --no-daemon --stacktrace --info
           echo "Compiled class files: $(find build/classes/java/main -type f -name '*.class' 2>/dev/null | wc -l)"
           echo "Dev JAR class count:"
-          find build/devlibs -maxdepth 1 -type f -name '*-dev.jar' -exec sh -c 'jar tf "$1" | grep -E '\''\.class$'\'' | wc -l' _ {} \;
+          find build/devlibs -maxdepth 1 -type f -name '*-dev.jar' -exec sh -c 'jar tf "$1" | grep -E '\''\.class
+          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep -E '\.class$' | wc -l
+      - name: Upload JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-planes-fabric-1.21.1
+          path: project/build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14
+\'' | wc -l' _ {} \;
+          echo "Metadata in dev JAR:"
+          jar tf build/devlibs/simpleplanes-1.21.1-5.2.1-port2-dev.jar | grep fabric.mod.json || true
           echo "Remapped JAR class count:"
           jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep -E '\.class$' | wc -l
       - name: Upload JAR
