@@ -361,6 +361,11 @@ jobs:
           p = root / "upgrades/payload/PayloadUpgrade.java"
           s = p.read_text().replace("EquipmentSlot.MAINHAND", "net.minecraft.world.entity.EquipmentSlot.MAINHAND")
           p.write_text(s)
+          # FabricEntityDataRegistry is available in the later 1.21.1 API line.
+          gp = Path("project/gradle.properties")
+          if gp.exists():
+              props = gp.read_text().replace("fabric_version=0.102.1+1.21.1", "fabric_version=0.116.7+1.21.1")
+              gp.write_text(props)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
