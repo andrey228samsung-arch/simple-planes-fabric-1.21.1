@@ -393,6 +393,19 @@ jobs:
           p = root / "upgrades/engines/furnace/FurnaceEngineUpgrade.java"
           s = p.read_text().replace("ClientUtil.renderHotbarItem(matrixStack, i - 91 - 26, i2, partialTicks, itemStack, mc);", "mc.getItemRenderer().renderAndDecorateItem(itemStack, i - 91 - 26, i2);").replace("ClientUtil.renderHotbarItem(matrixStack, i + 91 + 3, i2, partialTicks, itemStack, mc);", "mc.getItemRenderer().renderAndDecorateItem(itemStack, i + 91 + 3, i2);")
           p.write_text(s)
+          # Minecraft 1.21.1 has a built-in quaternion serializer; no custom registry is needed.
+          p = root / "setup/SimplePlanesDataSerializers.java"
+          s = p.read_text()
+          s = s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "")
+          s = s.replace("import net.minecraft.core.Registry;", "").replace("import net.minecraft.core.registries.BuiltInRegistries;", "")
+          a = s.find("    public static void init() {")
+          b = s.find("    public static final EntityDataSerializer<Quaternionf>", a)
+          if a >= 0 and b >= 0:
+              s = s[:a] + "    public static void init() { }" + chr(10) + chr(10) + s[b:]
+          p.write_text(s)
+          p = root / "entities/PlaneEntity.java"
+          s = p.read_text().replace("SimplePlanesDataSerializers.QUATERNION_SERIALIZER_ENTRY", "EntityDataSerializers.QUATERNION")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
