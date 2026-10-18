@@ -469,18 +469,9 @@ jobs:
           echo "Compiled class files: $(find build/classes/java/main -type f -name '*.class' 2>/dev/null | wc -l)"
           find build -type f -name '*.jar' -exec sh -c 'echo "JAR $1"; ls -lh "$1"; jar tf "$1" | head -15' _ {} \;
           echo "Remapped mod class count:"
-          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep -E '\\.class
-      - name: Upload JAR
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: simple-planes-fabric-1.21.1
-          path: project/build/libs/*.jar
-          if-no-files-found: error
-          retention-days: 14
- | wc -l || true
+          jar tf build/libs/simpleplanes-1.21.1-5.2.1-port2.jar | grep '\.class$' | wc -l || true
           echo "Dev JAR class count:"
-          find build/devlibs -type f -name '*.jar' -exec sh -c 'jar tf "$1" | grep -E "\\.class$" | wc -l' _ {} \; || true
+          find build/devlibs -type f -name '*.jar' -exec sh -c 'jar tf "$1" | grep '\''\.class$'\'' | wc -l' _ {} \; || true
       - name: Upload JAR
         if: success()
         uses: actions/upload-artifact@v4
