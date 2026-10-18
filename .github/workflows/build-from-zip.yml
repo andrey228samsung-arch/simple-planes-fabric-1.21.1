@@ -90,6 +90,43 @@ jobs:
           edit("entities/PlaneEntity.java", lambda s: s.replace("Q_Prev.copy()", "new Quaternionf(Q_Prev)").replace("maxUpStep = 0.9999f;", "setMaxUpStep(0.9999f);"))
           edit("entities/ParachuteEntity.java", lambda s: s.replace("new BlockPos(getX(), getY() - 0.1, getZ())", "BlockPos.containing(getX(), getY() - 0.1, getZ())").replace("blockState.getMaterial().isReplaceable()", "blockState.canBeReplaced()"))
           edit("upgrades/Upgrade.java", lambda s: s.replace(", false, false);", ", false);"))
+          # Port remaining legacy APIs used by the upstream Forge version to 1.21.1.
+          model_root = root
+          for p in list(model_root.rglob("*.java")):
+              s = p.read_text()
+              if "renderToBuffer(" in s or ".render(" in s:
+                  s = s.replace("int packedOverlay, float red, float green, float blue, float alpha", "int packedOverlay")
+                  s = re.sub(r",\s*packedLight,\s*packedOverlay,\s*red,\s*green,\s*blue,\s*alpha\)", ", packedLight, packedOverlay)", s)
+                  s = s.replace(", light, overlay, 1, 1, 1, 1)", ", light, overlay)")
+                  s = s.replace(", packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F)", ", packedLight, packedOverlay)")
+                  p.write_text(s)
+          for p in model_root.rglob("*.java"):
+              s = p.read_text()
+              s = s.replace("BuiltInRegistries.BLOCK_REGISTRY", "BuiltInRegistries.BLOCK")
+              s = s.replace("BlockInteraction.BREAK", "BlockInteraction.DESTROY")
+              s = s.replace("passenger.getMyRidingOffset()", "(passenger.getBbHeight() * 0.75)")
+              s = s.replace("source.isExplosion()", "source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION)")
+              s = s.replace("source.isFire()", "source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)")
+              s = s.replace("blockState.getMaterial().isReplaceable()", "blockState.canBeReplaced()")
+              p.write_text(s)
+          for rel in ["items/PlaneItem.java", "items/DescriptionItem.java"]:
+              p = model_root / rel
+              s = p.read_text()
+              s = s.replace("appendHoverText(ItemStack stack, @Nullable Level worldIn,", "appendHoverText(ItemStack stack, Item.TooltipContext context,")
+              s = s.replace("super.appendHoverText(stack, worldIn, tooltip, flagIn);", "super.appendHoverText(stack, context, tooltip, flagIn);")
+              p.write_text(s)
+          p = model_root / "client/render/PlaneItemColors.java"
+          s = p.read_text()
+          a = s.find("                    TextureAtlasSprite sprite = quads.get(0).getSprite();")
+          b = s.find("                    cachedColors.put(block, redo);", a)
+          if a >= 0 and b >= 0:
+              b += len("                    cachedColors.put(block, redo);")
+              s = s[:a] + "                    cachedColors.put(block, DEFAULT_COLOR);\n                    return DEFAULT_COLOR;" + s[b:]
+          p.write_text(s)
+          p = model_root / "entities/PlaneEntity.java"
+          s = p.read_text().replace("setMaxUpStep(0.9999f);", "maxUpStep = 0.9999f;")
+          s = s.replace("new BlockPos(position().add(0, 0.4, 0))", "BlockPos.containing(position().add(0, 0.4, 0))")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
