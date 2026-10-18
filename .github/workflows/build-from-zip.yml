@@ -42,18 +42,24 @@ jobs:
               edit(rel, lambda s: s.replace("import javax.annotation.Nullable;", "import org.jetbrains.annotations.Nullable;"))
           edit("container/FuelSlot.java", lambda s: s.replace("import javax.annotation.Nonnull;", "import org.jetbrains.annotations.NotNull;").replace("@Nonnull", "@NotNull"))
           edit("setup/SimplePlanesDataSerializers.java", lambda s: s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;").replace("FabricEntityDataRegistry.register(", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,"))
-          edit("client/ClientUtil.java", lambda s: re.sub(r"    private static void buildSquare\(.*?\n    }", "", s, flags=re.S).replace("import com.mojang.math.Matrix4f;", ""))
-          # Minecraft 1.21.1 stores disc playback data in the JUKEBOX_PLAYABLE data component.
+          def client_util(s):
+              s = s.replace("import com.mojang.math.Matrix4f;", "")
+              s = s.replace("import net.minecraft.client.gui.GuiComponent;", "import net.minecraft.client.gui.GuiGraphics;")
+              s = s.replace("public static void blit(PoseStack matrixStack, int blitOffset,", "public static void blit(GuiGraphics graphics, int blitOffset,")
+              s = s.replace("GuiComponent.blit(matrixStack, x, y, blitOffset, (float) uOffset, (float) vOffset, uWidth, vHeight, 256, 256);", "graphics.blit(ClientEventHandler.HUD_TEXTURE, x, y, uOffset, vOffset, uWidth, vHeight, 256, 256);")
+              return s
+          edit("client/ClientUtil.java", client_util)
+          edit("client/ClientEventHandler.java", lambda s: s.replace("ClientUtil.blit(matrixStack,", "ClientUtil.blit(graphics,"))
           def moving(s):
-              s = s.replace("import net.minecraft.world.item.MusicDiscItem;", "import net.minecraft.core.component.DataComponents;\nimport net.minecraft.world.item.JukeboxPlayable;")
-              s = s.replace("MusicDiscItem recordItem = (MusicDiscItem) BuiltInRegistries.ITEM.get(record);", "var recordItem = BuiltInRegistries.ITEM.get(record);\n        var stack = recordItem.getDefaultInstance();\n        JukeboxPlayable playable = stack.get(DataComponents.JUKEBOX_PLAYABLE);\n        if (playable == null) return;")
-              s = s.replace("recordItem.getDisplayName()", "recordItem.getName(stack)")
+              s = s.replace("import net.minecraft.world.item.RecordItem;", "import net.minecraft.core.component.DataComponents;\nimport net.minecraft.world.item.JukeboxPlayable;")
+              s = s.replace("RecordItem recordItem = (RecordItem) BuiltInRegistries.ITEM.get(record);", "var stack = BuiltInRegistries.ITEM.get(record).getDefaultInstance();\n        JukeboxPlayable playable = stack.get(DataComponents.JUKEBOX_PLAYABLE);\n        if (playable == null) return;")
+              s = s.replace("recordItem.getDisplayName()", "playable.song().value().description()")
               s = s.replace("recordItem.getSound()", "playable.song().value().soundEvent().value()")
               return s
           edit("client/MovingSound.java", moving)
           def jukebox(s):
-              s = s.replace("import net.minecraft.world.item.MusicDiscItem;", "import net.minecraft.core.component.DataComponents;")
-              s = s.replace("if (itemStack.getItem() instanceof MusicDiscItem newMusicDiscItem && newMusicDiscItem != record.getItem()) {", "if (itemStack.has(DataComponents.JUKEBOX_PLAYABLE) && itemStack.getItem() != record.getItem()) {\n                var newMusicDiscItem = itemStack.getItem();")
+              s = s.replace("import net.minecraft.world.item.RecordItem;", "import net.minecraft.core.component.DataComponents;")
+              s = s.replace("if (itemStack.getItem() instanceof RecordItem newRecordItem && newRecordItem != record.getItem()) {", "if (itemStack.has(DataComponents.JUKEBOX_PLAYABLE) && itemStack.getItem() != record.getItem()) {\n                var newRecordItem = itemStack.getItem();")
               return s
           edit("upgrades/jukebox/JukeboxUpgrade.java", jukebox)
           p = Path("project/build.gradle")
