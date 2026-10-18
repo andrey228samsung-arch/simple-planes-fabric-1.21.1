@@ -42,7 +42,7 @@ jobs:
               edit(rel, lambda s: s.replace("import javax.annotation.Nullable;", "import org.jetbrains.annotations.Nullable;"))
           edit("container/FuelSlot.java", lambda s: s.replace("import javax.annotation.Nonnull;", "import org.jetbrains.annotations.NotNull;").replace("@Nonnull", "@NotNull"))
           edit("setup/SimplePlanesDataSerializers.java", lambda s: s.replace("import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;", "import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;").replace("FabricEntityDataRegistry.register(", "Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,"))
-          edit("client/ClientUtil.java", lambda s: re.sub(r"    private static void buildSquare\\(.*?\\n    }", "", s, flags=re.S).replace("import com.mojang.math.Matrix4f;", ""))
+          edit("client/ClientUtil.java", lambda s: re.sub(r"    private static void buildSquare\(.*?\n    }", "", s, flags=re.S).replace("import com.mojang.math.Matrix4f;", ""))
           # Minecraft 1.21.1 stores disc playback data in the JUKEBOX_PLAYABLE data component.
           def moving(s):
               s = s.replace("import net.minecraft.world.item.MusicDiscItem;", "import net.minecraft.core.component.DataComponents;\nimport net.minecraft.world.item.JukeboxPlayable;")
