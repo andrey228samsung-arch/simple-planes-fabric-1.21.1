@@ -217,7 +217,7 @@ jobs:
               s = s.replace("new ClientboundAddEntityPacket(planeEntity, 0)", "new ClientboundAddEntityPacket(planeEntity, (net.minecraft.server.level.ServerEntity) null)")
               s = s.replace("new BlockPos(planeEntity.position().add(0, 0.5, 0))", "BlockPos.containing(planeEntity.position().add(0, 0.5, 0))")
               s = s.replace("camera.move((float)-camera.getMaxZoom((float)(4.0D * (planeEntity.getCameraDistanceMultiplayer() - 1.0))), 0.0F, 0.0F);", "// Custom camera zoom disabled on 1.21.1 because Camera movement is no longer public.")
-              s = re.sub(r"camera\\.setPosition\\(new Vec3\\(Mth\\.lerp\\(partialTicks, player\\.xo.*?player\\.getZ\\(\\) \\+ eyeNow\\.z\\(\\)\\)\\)\\);", "// Custom plane camera position override disabled on 1.21.1; Camera.setPosition is protected.", s, flags=re.S)
+              s = re.sub(r"camera\.setPosition\(new Vec3\(Mth\.lerp\(partialTicks, player\.xo.*?player\.getZ\(\) \+ eyeNow\.z\(\)\)\)\);", "// Custom plane camera position override disabled on 1.21.1; Camera.setPosition is protected.", s, flags=re.S)
               s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(TEXTURE), false, false)", "ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(TEXTURE), false)")
               s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(LARGE_TEXTURE), false, false)", "ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(LARGE_TEXTURE), false)")
               s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(HELI_TEXTURE), false, false)", "ItemRenderer.getArmorFoilBuffer(buffer, RenderType.armorCutoutNoCull(HELI_TEXTURE), false)")
