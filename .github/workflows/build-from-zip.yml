@@ -433,7 +433,7 @@ jobs:
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           # Remove an obsolete Forge-era nested class access widener absent in Minecraft 1.21.1.
-          aw_text = "\\n".join(line for line in aw_text.splitlines() if "TextureAtlasSprite$AnimatedTexture" not in line) + "\\n"
+          aw_text = chr(10).join(line for line in aw_text.splitlines() if "TextureAtlasSprite$AnimatedTexture" not in line) + chr(10)
           for line in [
               "accessible field net/minecraft/world/entity/Entity level Lnet/minecraft/world/level/Level;",
               "accessible field net/minecraft/world/entity/Entity onGround Z"
