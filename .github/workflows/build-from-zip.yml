@@ -365,6 +365,34 @@ jobs:
           if gp.exists():
               props = gp.read_text().replace("fabric_version=0.102.1+1.21.1", "fabric_version=0.116.7+1.21.1")
               gp.write_text(props)
+          # Final compile fixes for the 1.21.1 mappings.
+          p = root / "setup/SimplePlanesDataSerializers.java"
+          s = p.read_text()
+          s = s.replace("import net.minecraft.core.Registry;\\nimport net.minecraft.core.registries.BuiltInRegistries;", "import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;")
+          s = s.replace("Registry.register(BuiltInRegistries.ENTITY_DATA_SERIALIZER,", "FabricEntityDataRegistry.register(")
+          p.write_text(s)
+          p = root / "client/MovingSound.java"
+          s = p.read_text().replace("new MovingSound(net.minecraft.sounds.SoundEvents.MUSIC_DISC_13, entity)", "new MovingSound(net.minecraft.sounds.SoundEvents.MUSIC_DISC_13.value(), entity)")
+          p.write_text(s)
+          p = root / "upgrades/armor/ArmorUpgrade.java"
+          s = p.read_text().replace("net.minecraft.core.registries.planeEntity.level.registryAccess()", "planeEntity.level.registryAccess()")
+          p.write_text(s)
+          p = root / "upgrades/jukebox/JukeboxUpgrade.java"
+          s = p.read_text().replace("return record.saveOptional(planeEntity.level.registryAccess());", "CompoundTag tag = new CompoundTag();\\n        tag.put(\\"record\\", record.saveOptional(planeEntity.level.registryAccess()));\\n        return tag;")
+          s = s.replace("record = ItemStack.parse(planeEntity.level.registryAccess(), nbt).orElse(ItemStack.EMPTY);", "record = ItemStack.parse(planeEntity.level.registryAccess(), nbt.get(\\"record\\")).orElse(ItemStack.EMPTY);")
+          p.write_text(s)
+          p = root / "client/render/PlaneItemColors.java"
+          s = p.read_text().replace("                    return DEFAULT_COLOR;\\n\\n                }\\n                return redo;", "                    return DEFAULT_COLOR;\\n                }")
+          p.write_text(s)
+          p = root / "client/gui/PlaneWorkbenchScreen.java"
+          s = p.read_text()
+          p.write_text(s)
+          p = root / "upgrades/banner/BannerModel.java"
+          s = p.read_text().replace("BannerRenderer.renderPatterns(matrixStackIn, bufferIn, packedLight, OverlayTexture.NO_OVERLAY, bannerRenderer.flag, ModelBakery.BANNER_BASE, true, list);", "BannerRenderer.renderPatterns(matrixStackIn, bufferIn, packedLight, OverlayTexture.NO_OVERLAY, bannerRenderer.flag, ModelBakery.BANNER_BASE, list);")
+          p.write_text(s)
+          p = root / "upgrades/engines/furnace/FurnaceEngineUpgrade.java"
+          s = p.read_text().replace("ClientUtil.renderHotbarItem(matrixStack, i - 91 - 26, i2, partialTicks, itemStack, mc);", "mc.getItemRenderer().renderAndDecorateItem(itemStack, i - 91 - 26, i2);").replace("ClientUtil.renderHotbarItem(matrixStack, i + 91 + 3, i2, partialTicks, itemStack, mc);", "mc.getItemRenderer().renderAndDecorateItem(itemStack, i + 91 + 3, i2);")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
