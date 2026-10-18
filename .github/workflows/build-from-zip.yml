@@ -343,6 +343,24 @@ jobs:
           p = root / "upgrades/payload/PayloadUpgrade.java"
           s = p.read_text().replace("itemStack.hurtAndBreak(1, player, hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);", "itemStack.hurtAndBreak(1, player, EquipmentSlot.MAINHAND);")
           p.write_text(s)
+          # Modern widget constructors and five-argument selection-list constructor.
+          p = root / "client/UpgradeButtonsList.java"
+          s = p.read_text().replace("super(mcIn, widthIn, heightIn, topIn, bottomIn, itemHeightIn);", "super(mcIn, widthIn, heightIn, topIn, bottomIn);")
+          s = s.replace("new ButtonEntry(0, topIn, widthIn, itemHeightIn - 4,", "new ButtonEntry(0, topIn, widthIn, itemHeightIn - 4,")
+          p.write_text(s)
+          p = root / "client/gui/PlaneWorkbenchScreen.java"
+          s = p.read_text()
+          s = s.replace("new ImageButton(leftPos + 122, topPos + 47, 10, 15, 176, 0, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_LEFT))", "Button.builder(Component.literal(\"◀\"), button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_LEFT)).bounds(leftPos + 122, topPos + 47, 10, 15).build()")
+          s = s.replace("new ImageButton(leftPos + 152, topPos + 47, 10, 15, 186, 0, GUI, button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT))", "Button.builder(Component.literal(\"▶\"), button -> CycleItemsPacket.send(CycleItemsPacket.Type.CRAFTING_RIGHT)).bounds(leftPos + 152, topPos + 47, 10, 15).build()")
+          s = s.replace("import net.minecraft.client.gui.components.ImageButton;", "import net.minecraft.client.gui.components.Button;")
+          p.write_text(s)
+          p = root / "setup/SimplePlanesDataSerializers.java"
+          s = p.read_text().replace("import net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;", "import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityDataRegistry;")
+          s = s.replace("Registry.register(net.minecraft.core.registries.Registries.ENTITY_DATA_SERIALIZER,", "FabricEntityDataRegistry.register(")
+          p.write_text(s)
+          p = root / "upgrades/payload/PayloadUpgrade.java"
+          s = p.read_text().replace("EquipmentSlot.MAINHAND", "net.minecraft.world.entity.EquipmentSlot.MAINHAND")
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
