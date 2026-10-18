@@ -180,6 +180,31 @@ jobs:
               s = s.replace("appendHoverText(ItemStack stack, Level worldIn,", "appendHoverText(ItemStack stack, Item.TooltipContext context,")
               s = s.replace("super.appendHoverText(stack, worldIn, tooltip, flagIn);", "super.appendHoverText(stack, context, tooltip, flagIn);")
               p.write_text(s)
+          # Additional 1.21.1 compile migrations discovered in the latest javac run.
+          for p in root.rglob("*.java"):
+              s = p.read_text()
+              # Model's abstract render method now takes packedColor; the four-argument method is final.
+              if "renderToBuffer(" in s:
+                  s = re.sub(r"(public\\s+void\\s+renderToBuffer\\s*\\(\\s*PoseStack\\s+\\w+\\s*,\\s*VertexConsumer\\s+\\w+\\s*,\\s*int\\s+\\w+\\s*,\\s*int\\s+\\w+)\\s*\\)", r"\\1, int packedColor)", s)
+              s = s.replace("return redo;", "return DEFAULT_COLOR;")
+              s = s.replace("ItemRenderer.getArmorFoilBuffer(buffer, planeEntityModel.renderType(propellerTexture), false, planeEntity.isNoGravity())", "ItemRenderer.getArmorFoilBuffer(buffer, planeEntityModel.renderType(propellerTexture), false)")
+              s = s.replace("player.playSound(SoundEvents.ARMOR_EQUIP_LEATHER, 1.0f, 1.0f)", "player.playSound(SoundEvents.ARMOR_EQUIP_LEATHER.value(), 1.0f, 1.0f)")
+              s = s.replace("camera.move(-camera.getMaxZoom(4.0D * (planeEntity.getCameraDistanceMultiplayer() - 1.0)), 0.0D, 0.0D)", "camera.move((float)-camera.getMaxZoom((float)(4.0D * (planeEntity.getCameraDistanceMultiplayer() - 1.0))), 0.0F, 0.0F)")
+              s = s.replace("eyePrev.transform(qPrev);", "qPrev.transform(eyePrev);").replace("eyeNow.transform(qNow);", "qNow.transform(eyeNow);")
+              s = s.replace(".getQuads(null, Direction.SOUTH, RandomSource.create()).get(0).getSprite().getName()", ".getQuads(null, Direction.SOUTH, RandomSource.create()).get(0).getSprite().contents().name()")
+              p.write_text(s)
+          # 1.21.1 renamed narration hooks and button construction.
+          p = root / "client/UpgradeButtonsList.java"
+          s = p.read_text().replace("public void updateNarration(NarrationElementOutput p_169152_)", "public void updateWidgetNarration(NarrationElementOutput p_169152_)")
+          s = s.replace("this.button = new Button(x + 4, y, width - 8, height, title, b -> {", "this.button = Button.builder(title, b -> {")
+          s = s.replace("                list.removeEntry(this);\n            });", "                list.removeEntry(this);\n            }).bounds(x + 4, y, width - 8, height).build();")
+          s = s.replace("button.y = top;", "button.setY(top);")
+          p.write_text(s)
+          # Remove legacy six-argument button constructor calls in the workbench screen.
+          p = root / "client/gui/PlaneWorkbenchScreen.java"
+          s = p.read_text()
+          s = re.sub(r"new ImageButton\\(([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*([^,]+),\\s*(\\([^)]*\\)\\s*->\\s*[^)]*)\\)", r"new ImageButton(\\1, \\2, \\3, \\4, \\5, \\6, \\7, \\8, \\9)", s)
+          p.write_text(s)
           aw = Path("project/src/main/resources/simpleplanes.accesswidener")
           aw_text = aw.read_text()
           for line in [
