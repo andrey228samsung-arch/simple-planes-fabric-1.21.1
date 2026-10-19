@@ -554,6 +554,47 @@ jobs:
           if "org.jetbrains:annotations" not in s:
               s = s.replace('modImplementation "net.fabricmc.fabric-api:fabric-api:', 'compileOnly "org.jetbrains:annotations:26.0.2"\n    modImplementation "net.fabricmc.fabric-api:fabric-api:')
           p.write_text(s)
+          # Minecraft 1.21.1 replaced Block.use(...) with useWithoutItem/useItemOn.
+          # The legacy callback compiles only after removing @Override, but Minecraft never calls it,
+          # so the Plane Workbench GUI cannot open. Wire both modern interaction paths to the menu.
+          p = root / "blocks/PlaneWorkbenchBlock.java"
+          s = p.read_text()
+          start = s.find("    public InteractionResult use(")
+          end = s.find("\n    @Nullable", start)
+          if start < 0 or end < 0:
+              raise SystemExit("Could not locate legacy PlaneWorkbenchBlock.use method")
+          replacement = """    @Override
+              protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos blockPos, Player player) {
+                  return openWorkbench(level, blockPos, player);
+              }
+
+              @Override
+              protected InteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level,
+                      BlockPos blockPos, Player player, InteractionHand handIn, BlockHitResult hit) {
+                  return openWorkbench(level, blockPos, player);
+              }
+
+              private InteractionResult openWorkbench(Level level, BlockPos blockPos, Player player) {
+                  if (level.isClientSide) {
+                      return InteractionResult.SUCCESS;
+                  }
+                  BlockEntity blockEntity = level.getBlockEntity(blockPos);
+                  if (blockEntity instanceof PlaneWorkbenchBlockEntity workbench) {
+                      player.openMenu(new SimpleMenuProvider((id, inventory, menuPlayer) ->
+                              new PlaneWorkbenchContainer(id, inventory, blockPos, workbench, workbench.selectedRecipe), CONTAINER_NAME));
+                  }
+                  return InteractionResult.CONSUME;
+              }
+          """
+          s = s[:start] + replacement + s[end:]
+          p.write_text(s)
+          # Keep vehicle placement from crashing if a malformed entity type fails to create an entity.
+          # Offset wall/floor-side placement slightly outward, avoiding immediate collision with the clicked block.
+          p = root / "items/PlaneItem.java"
+          s = p.read_text()
+          s = s.replace("                PlaneEntity planeEntity = planeEntityType.create(worldIn);\n\n                planeEntity.setPos(hitResult.getLocation().x(), hitResult.getLocation().y(), hitResult.getLocation().z());",
+                        "                PlaneEntity planeEntity = planeEntityType.create(worldIn);\n                if (planeEntity == null) {\n                    return InteractionResultHolder.fail(itemstack);\n                }\n                Vec3 placeAt = hitResult.getLocation();\n                if (hitResult instanceof net.minecraft.world.phys.BlockHitResult blockHit && blockHit.getDirection() != net.minecraft.core.Direction.UP) {\n                    placeAt = placeAt.add(blockHit.getDirection().getStepX() * 0.35D, blockHit.getDirection().getStepY() * 0.05D, blockHit.getDirection().getStepZ() * 0.35D);\n                }\n                planeEntity.setPos(placeAt.x(), placeAt.y(), placeAt.z());")
+          p.write_text(s)
           PY
       - name: Build mod
         working-directory: project
