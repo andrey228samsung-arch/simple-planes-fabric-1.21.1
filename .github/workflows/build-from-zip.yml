@@ -43,7 +43,60 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import re, shutil, json
+          # Minecraft 1.21 renamed several data-pack directories to singular forms.
+          # The upstream project still uses the pre-1.21 names, so recipes and material tags
+          # would otherwise be silently ignored: planes would not show in creative inventory
+          # and the Plane Workbench would have no recipes.
+          data_root = Path("project/src/main/resources/data")
+          directory_renames = {
+              "recipes": "recipe",
+              "advancements": "advancement",
+              "loot_tables": "loot_table",
+              "item_modifiers": "item_modifier",
+              "predicates": "predicate",
+              "functions": "function",
+              "structures": "structure",
+          }
+          if data_root.exists():
+              for old_name, new_name in directory_renames.items():
+                  for old_dir in sorted(data_root.rglob(old_name), key=lambda x: len(x.parts), reverse=True):
+                      new_dir = old_dir.with_name(new_name)
+                      new_dir.mkdir(parents=True, exist_ok=True)
+                      for child in list(old_dir.iterdir()):
+                          destination = new_dir / child.name
+                          if child.is_dir() and destination.exists():
+                              shutil.copytree(child, destination, dirs_exist_ok=True)
+                              shutil.rmtree(child)
+                          else:
+                              shutil.move(str(child), str(destination))
+                      old_dir.rmdir()
+              for old_dir in sorted(data_root.rglob("blocks"), key=lambda x: len(x.parts), reverse=True):
+                  if old_dir.parent.name != "tags":
+                      continue
+                  new_dir = old_dir.with_name("block")
+                  new_dir.mkdir(parents=True, exist_ok=True)
+                  for child in list(old_dir.iterdir()):
+                      destination = new_dir / child.name
+                      if child.is_dir() and destination.exists():
+                          shutil.copytree(child, destination, dirs_exist_ok=True)
+                          shutil.rmtree(child)
+                      else:
+                          shutil.move(str(child), str(destination))
+                  old_dir.rmdir()
+              for old_dir in sorted(data_root.rglob("items"), key=lambda x: len(x.parts), reverse=True):
+                  if old_dir.parent.name != "tags":
+                      continue
+                  new_dir = old_dir.with_name("item")
+                  new_dir.mkdir(parents=True, exist_ok=True)
+                  for child in list(old_dir.iterdir()):
+                      destination = new_dir / child.name
+                      if child.is_dir() and destination.exists():
+                          shutil.copytree(child, destination, dirs_exist_ok=True)
+                          shutil.rmtree(child)
+                      else:
+                          shutil.move(str(child), str(destination))
+                  old_dir.rmdir()
           root = Path("project/src/main/java/xyz/przemyk/simpleplanes")
           # Always ensure the Fabric metadata exists and triggers Loom's remapping.
           fabric_meta = Path("project/src/main/resources/fabric.mod.json")
@@ -182,6 +235,20 @@ jobs:
               s = s.replace("Quaternionf quaternion = SimplePlanesDataSerializers.QUATERNION_SERIALIZER_ENTRY.read(buffer);", "Quaternionf quaternion = new Quaternionf(buffer.readFloat(), buffer.readFloat(), buffer.readFloat(), buffer.readFloat());")
               s = s.replace("new BlockPos(position().add(0, 0.4, 0))", "BlockPos.containing(position().add(0, 0.4, 0))")
               p.write_text(s)
+          # Always show the three vehicle items even before material variants are generated.
+          p = root / "setup/SimplePlanesItems.java"
+          s = p.read_text()
+          marker = "                        PLANE_ITEM.addMaterialVariants(entries::accept);"
+          if marker in s and "entries.accept(PLANE_ITEM);" not in s:
+              s = s.replace(marker, "                        entries.accept(PLANE_ITEM);\n                        entries.accept(LARGE_PLANE_ITEM);\n                        entries.accept(HELICOPTER_ITEM);\n" + marker)
+          p.write_text(s)
+          # Correct the Russian creative-tab translation key for the registered tab.
+          ru = Path("project/src/main/resources/assets/simpleplanes/lang/ru_ru.json")
+          if ru.exists():
+              lang = json.loads(ru.read_text(encoding="utf-8"))
+              lang["itemGroup.simpleplanes.simple_planes"] = "Simple Planes"
+              lang.pop("itemGroup.simpleplanes", None)
+              ru.write_text(json.dumps(lang, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           # Avoid illegal forward references from the creative tab initializer.
           p = root / "setup/SimplePlanesItems.java"
           s = p.read_text()
